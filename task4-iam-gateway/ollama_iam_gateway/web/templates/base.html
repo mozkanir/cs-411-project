@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} – Ollama Access</title>
+  <link rel="icon" href="/iam/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/iam/static/app.css">
+  <script src="/iam/static/app.js" defer></script>
+</head>
+<body class="{% block body_class %}app{% endblock %}">
+{% block shell %}
+  <header class="topbar">
+    <a class="brand" href="/iam/account">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="12" r="4.5"/><path d="M12.5 12H22M18 12v3.5M21 12v2.5"/></svg>
+      Ollama Access
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="/iam/account" {% if active == "account" %}aria-current="page"{% endif %}>Account</a>
+      {% if is_admin %}
+      <a href="/iam/admin/users" {% if active == "users" %}aria-current="page"{% endif %}>Users</a>
+      <a href="/iam/admin/audit" {% if active == "audit" %}aria-current="page"{% endif %}>Audit log</a>
+      {% endif %}
+    </nav>
+    <div class="who">
+      <span class="who-name">{{ user.username }}</span>
+      <span class="role role-{{ user.role.value }}">{{ user.role.value }}</span>
+      <form method="post" action="/iam/logout">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn btn-quiet" type="submit">Sign out</button>
+      </form>
+    </div>
+  </header>
+  <main class="page">
+    {% if notice %}<p class="flash flash-ok" role="status">{{ notice }}</p>{% endif %}
+    {% if error %}<p class="flash flash-err" role="alert">{{ error }}</p>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+{% endblock %}
+</body>
+</html>

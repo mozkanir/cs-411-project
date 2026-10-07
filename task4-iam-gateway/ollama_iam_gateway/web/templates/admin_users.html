@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<h1>Users</h1>
+
+<section class="section">
+  <div class="table-wrap">
+  <table class="users stack-mobile">
+    <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for u in users %}
+    {% set locked = u.locked_until and u.locked_until > now %}
+    <tr>
+      <td data-label="User"><span><strong>{{ u.username }}</strong>{% if u.id == user.id %} <span class="muted">(you)</span>{% endif %}</span></td>
+      <td data-label="Role">
+        <form method="post" action="/iam/admin/users/{{ u.id }}/role" class="row-form">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <label class="sr-only" for="role-{{ u.id }}">Role of {{ u.username }}</label>
+          <select id="role-{{ u.id }}" name="role">
+            {% for r in roles %}<option value="{{ r }}" {% if r == u.role.value %}selected{% endif %}>{{ r }}</option>{% endfor %}
+          </select>
+          <button class="btn btn-quiet" type="submit">Save</button>
+        </form>
+      </td>
+      <td data-label="Status">
+        {% if not u.is_active %}<span class="status status-off">Disabled</span>
+        {% elif locked %}<span class="status status-warn">Locked until {{ u.locked_until.strftime("%H:%M") }} UTC</span>
+        {% else %}<span class="status status-on">Active</span>{% endif %}
+      </td>
+      <td data-label="Created">{{ u.created_at.strftime("%d %b %Y") }}</td>
+      <td data-label="Actions"><div class="actions">
+        {% if locked %}
+        <form method="post" action="/iam/admin/users/{{ u.id }}/unlock">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="btn btn-quiet" type="submit">Unlock</button>
+        </form>
+        {% endif %}
+        {% if u.id != user.id %}
+        <form method="post" action="/iam/admin/users/{{ u.id }}/active"
+              {% if u.is_active %}data-confirm="Disable {{ u.username }}? They will be signed out and their API keys will stop working."{% endif %}>
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="active" value="{{ '0' if u.is_active else '1' }}">
+          <button class="btn {{ 'btn-danger' if u.is_active else 'btn-quiet' }}" type="submit">{{ "Disable" if u.is_active else "Enable" }}</button>
+        </form>
+        {% endif %}
+        <details class="reset">
+          <summary class="btn btn-quiet">Reset password</summary>
+          <form method="post" action="/iam/admin/users/{{ u.id }}/password" class="row-form">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <label class="sr-only" for="pw-{{ u.id }}">New password for {{ u.username }}</label>
+            <input id="pw-{{ u.id }}" name="new_password" type="password" autocomplete="new-password" minlength="8" placeholder="New password" required>
+            <button class="btn btn-primary" type="submit">Set</button>
+          </form>
+        </details>
+      </div></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Add a user</h2>
+  <form method="post" action="/iam/admin/users" class="inline-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="field"><span>Username</span>
+      <input name="username" autocomplete="off" autocapitalize="none" spellcheck="false" required></label>
+    <label class="field"><span>Temporary password</span>
+      <input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+    <label class="field"><span>Role</span>
+      <select name="role">{% for r in roles %}<option value="{{ r }}" {% if r == "user" %}selected{% endif %}>{{ r }}</option>{% endfor %}</select></label>
+    <button class="btn btn-primary" type="submit">Add user</button>
+  </form>
+  <p class="muted hint">Viewer: list models. User: also chat and use web search. Admin: also manage models, users and the audit log.</p>
+</section>
+{% endblock %}
