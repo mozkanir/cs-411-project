@@ -1,0 +1,40 @@
+@startuml
+title Process View — Browser Login (with lockout)
+skinparam shadowing false
+autonumber
+actor Browser
+participant "Web UI\nController" as UI
+participant AuthService as Auth
+participant UserRepository as UR
+participant SessionService as SS
+participant AuditService as AU
+
+Browser -> UI : GET /iam/login
+UI --> Browser : login form (+ CSRF token)
+Browser -> UI : POST /iam/login (username, password, csrf)
+UI -> UI : verify CSRF
+UI -> Auth : login(username, password, ip)
+Auth -> UR : find_by_username()
+UR --> Auth : user / none
+alt user missing OR inactive
+  Auth -> AU : log(LOGIN_FAILED)
+  Auth --> UI : InvalidCredentials
+  UI --> Browser : "Invalid username or password"
+else user locked (locked_until > now)
+  Auth -> AU : log(LOGIN_LOCKED)
+  Auth --> UI : AccountLocked
+  UI --> Browser : "Account locked, try later"
+else wrong password
+  Auth -> UR : failed_attempts += 1\n(if >= 5: locked_until = now + 15 min)
+  Auth -> AU : log(LOGIN_FAILED)
+  Auth --> UI : InvalidCredentials
+  UI --> Browser : "Invalid username or password"
+else password OK (argon2id verify)
+  Auth -> UR : reset failed_attempts
+  Auth -> SS : create(user)
+  SS --> Auth : raw session token\n(only hash stored)
+  Auth -> AU : log(LOGIN_SUCCESS)
+  Auth --> UI : session token
+  UI --> Browser : 303 → /iam/account\nSet-Cookie: HttpOnly; SameSite=Strict
+end
+@enduml

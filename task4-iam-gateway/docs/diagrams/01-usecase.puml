@@ -1,0 +1,38 @@
+@startuml
+title Scenario View — IAM Gateway Use Cases
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+actor "Viewer" as V
+actor "User" as U
+actor "Admin" as A
+actor "API Client\n(curl / OpenAI SDK /\nollama-python)" as C
+U -|> V
+A -|> U
+rectangle "Ollama IAM Gateway" {
+  usecase "Log in / Log out" as UC1
+  usecase "Change own password" as UC2
+  usecase "Create / revoke own API key" as UC3
+  usecase "List models" as UC4
+  usecase "Chat / generate / embed" as UC5
+  usecase "Use web search / fetch" as UC6
+  usecase "Pull / delete / create models" as UC7
+  usecase "Manage users & roles" as UC8
+  usecase "View audit log" as UC9
+  usecase "Authenticate with API key" as UC10
+}
+V --> UC1
+V --> UC2
+V --> UC3
+V --> UC4
+U --> UC5
+U --> UC6
+A --> UC7
+A --> UC8
+A --> UC9
+C --> UC10
+UC4 ..> UC10 : <<include>>
+UC5 ..> UC10 : <<include>>
+UC6 ..> UC10 : <<include>>
+UC7 ..> UC10 : <<include>>
+@enduml

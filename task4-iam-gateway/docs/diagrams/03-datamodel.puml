@@ -1,0 +1,70 @@
+@startuml
+title Logical View — Domain / Data Model
+skinparam shadowing false
+hide circle
+enum Role {
+  VIEWER
+  USER
+  ADMIN
+}
+enum Permission {
+  PUBLIC
+  MODELS_READ
+  INFERENCE
+  TOOLS_WEB
+  MODELS_MANAGE
+  CLOUD_ACCOUNT
+  IAM_MANAGE
+}
+class User {
+  id : int
+  username : str <<unique>>
+  password_hash : str (argon2id)
+  role : Role
+  is_active : bool
+  failed_attempts : int
+  locked_until : datetime?
+  created_at : datetime
+}
+class Session {
+  id : int
+  token_hash : str (sha256)
+  csrf_token : str
+  created_at : datetime
+  last_seen_at : datetime
+  expires_at : datetime
+}
+class ApiKey {
+  id : int
+  name : str
+  prefix : str (shown in UI)
+  key_hash : str (sha256)
+  created_at : datetime
+  last_used_at : datetime?
+  revoked_at : datetime?
+}
+class AuditEvent {
+  id : int
+  timestamp : datetime
+  username : str?
+  event_type : str
+  method : str?
+  path : str?
+  model : str?
+  status_code : int?
+  client_ip : str
+  detail : str?
+}
+class PolicyEngine <<stateless>> {
+  ROUTE_RULES : list[(method, path pattern, Permission)]
+  ROLE_PERMISSIONS : dict[Role, set[Permission]]
+  required_permission(method, path) : Permission?
+  is_allowed(role, method, path) : bool
+}
+User "1" -- "0..*" Session
+User "1" -- "0..*" ApiKey
+User "0..1" -- "0..*" AuditEvent : actor >
+User --> Role
+PolicyEngine ..> Role
+PolicyEngine ..> Permission
+@enduml

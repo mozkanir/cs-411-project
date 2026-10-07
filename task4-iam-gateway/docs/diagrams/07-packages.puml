@@ -1,0 +1,38 @@
+@startuml
+title Development View — Package Structure
+skinparam shadowing false
+package "ollama_iam_gateway" {
+  package "web" as web {
+    class "routes_auth.py" as a1
+    class "routes_account.py" as a2
+    class "routes_admin.py" as a3
+    class "templates/ + static/" as a4
+  }
+  package "gateway" as gw {
+    class "credentials.py" as g1
+    class "proxy.py" as g2
+  }
+  package "iam" as iam {
+    class "auth_service.py" as i1
+    class "session_service.py" as i2
+    class "apikey_service.py" as i3
+    class "user_service.py" as i4
+    class "policy.py" as i5
+    class "audit_service.py" as i6
+    class "security.py" as i7
+  }
+  package "data" as data {
+    class "db.py" as d1
+    class "models.py" as d2
+    class "repositories.py" as d3
+  }
+  class "main.py / config.py / cli.py" as m
+}
+hide members
+hide circle
+web ..> iam
+gw ..> iam
+iam ..> data
+m ..> web
+m ..> gw
+@enduml

@@ -1,0 +1,37 @@
+@startuml
+title Process View — Authorized API Request to Ollama (streaming)
+skinparam shadowing false
+autonumber
+actor "API Client" as C
+participant "Credential\nResolver" as CR
+participant ApiKeyService as K
+participant "PEP\n(proxy pipeline)" as PEP
+participant "PolicyEngine\n(PDP)" as PDP
+participant AuditService as AU
+participant "Ollama Proxy\nClient" as PX
+participant "Ollama\n127.0.0.1:11434" as O
+
+C -> CR : POST /api/chat\nAuthorization: Bearer olg_xxx
+CR -> K : resolve(raw key)
+K --> CR : user + role / none
+alt no / invalid / revoked key, or user disabled
+  CR -> AU : log(AUTH_FAILED)
+  CR --> C : 401 Unauthorized
+else authenticated
+  CR -> PEP : handle(user, request)
+  PEP -> PDP : is_allowed(role, "POST", "/api/chat")
+  PDP --> PEP : allow / deny
+  alt deny (or unknown route → default deny)
+    PEP -> AU : log(ACCESS_DENIED)
+    PEP --> C : 403 Forbidden
+  else allow
+    PEP -> PX : forward(request, strip Authorization)
+    PX -> O : POST /api/chat
+    loop streamed chunks
+      O --> PX : chunk
+      PX --> C : chunk
+    end
+    PEP -> AU : log(PROXY_REQUEST, model, status)
+  end
+end
+@enduml
