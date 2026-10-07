@@ -4,6 +4,8 @@ Usage:
     python -m ollama_iam_gateway.cli init-db
     python -m ollama_iam_gateway.cli create-admin --username admin
     python -m ollama_iam_gateway.cli list-users
+    python -m ollama_iam_gateway.cli show-policy
+    python -m ollama_iam_gateway.cli check-access --role user POST /api/delete
 
 The database location comes from IAM_DB_URL (default sqlite:///./iam.db)
 or the --db option.
@@ -20,6 +22,7 @@ from .config import Settings
 from .data.db import init_db, make_engine, make_session_factory
 from .data.models import Role
 from .iam.errors import IAMError as UserServiceError
+from .iam.policy import PolicyEngine
 from .iam.user_service import UserService
 
 
@@ -65,6 +68,22 @@ def _cmd_list_users(settings: Settings, _args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_show_policy(_settings: Settings, _args: argparse.Namespace) -> int:
+    rows = PolicyEngine().table()
+    print(f"{'METHODS':<12} {'PATH':<42} {'PERMISSION':<14} ROLES")
+    for methods, pattern, perm, roles in rows:
+        print(f"{methods:<12} {pattern:<42} {perm:<14} {roles}")
+    print(f"\n{len(rows)} rules. Anything else: denied for everyone (default deny).")
+    return 0
+
+
+def _cmd_check_access(_settings: Settings, args: argparse.Namespace) -> int:
+    role = None if args.role == "anonymous" else Role(args.role)
+    d = PolicyEngine().decide(role, args.method, args.path)
+    print(f"{'ALLOW' if d.allowed else 'DENY '}  {args.role} {args.method.upper()} {args.path}  ({d.reason})")
+    return 0 if d.allowed else 3
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="ollama_iam_gateway.cli",
                                      description="Ollama IAM Gateway admin tools")
@@ -79,6 +98,14 @@ def build_parser() -> argparse.ArgumentParser:
                          help="read the password from stdin instead of prompting")
 
     sub.add_parser("list-users", help="list all users")
+
+    sub.add_parser("show-policy", help="print the endpoint -> permission -> role table")
+
+    p_check = sub.add_parser("check-access", help="ask the policy engine for one decision")
+    p_check.add_argument("--role", required=True,
+                         choices=["anonymous"] + [r.value for r in Role])
+    p_check.add_argument("method")
+    p_check.add_argument("path")
     return parser
 
 
@@ -95,6 +122,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             return _cmd_create_user(settings, args, Role.ADMIN)
         if args.command == "list-users":
             return _cmd_list_users(settings, args)
+        if args.command == "show-policy":
+            return _cmd_show_policy(settings, args)
+        if args.command == "check-access":
+            return _cmd_check_access(settings, args)
     except UserServiceError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
