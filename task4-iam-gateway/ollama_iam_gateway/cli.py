@@ -19,7 +19,8 @@ from typing import Optional, Sequence
 from .config import Settings
 from .data.db import init_db, make_engine, make_session_factory
 from .data.models import Role
-from .iam.user_service import UserService, UserServiceError
+from .iam.errors import IAMError as UserServiceError
+from .iam.user_service import UserService
 
 
 def _read_password(from_stdin: bool) -> str:

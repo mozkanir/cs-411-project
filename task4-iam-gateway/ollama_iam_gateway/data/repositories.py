@@ -55,8 +55,11 @@ class SessionRepository:
         self.db.delete(session)
         self.db.flush()
 
-    def delete_for_user(self, user_id: int) -> int:
-        result = self.db.execute(delete(UserSession).where(UserSession.user_id == user_id))
+    def delete_for_user(self, user_id: int, except_session_id: Optional[int] = None) -> int:
+        stmt = delete(UserSession).where(UserSession.user_id == user_id)
+        if except_session_id is not None:
+            stmt = stmt.where(UserSession.id != except_session_id)
+        result = self.db.execute(stmt.execution_options(synchronize_session="fetch"))
         return result.rowcount or 0
 
     def delete_expired(self, now: datetime) -> int:
@@ -75,6 +78,12 @@ class ApiKeyRepository:
 
     def get(self, key_id: int) -> Optional[ApiKey]:
         return self.db.get(ApiKey, key_id)
+
+    def count_active_for_user(self, user_id: int) -> int:
+        return self.db.scalar(
+            select(func.count()).select_from(ApiKey)
+            .where(ApiKey.user_id == user_id, ApiKey.revoked_at.is_(None))
+        ) or 0
 
     def get_by_prefix(self, prefix: str) -> Optional[ApiKey]:
         return self.db.scalar(select(ApiKey).where(ApiKey.prefix == prefix))
