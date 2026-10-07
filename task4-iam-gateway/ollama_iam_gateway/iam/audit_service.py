@@ -16,7 +16,8 @@ class AuditService:
         self.clock = clock
 
     def log(self, event_type: AuditEventType, *, user: Optional[User] = None,
-            username: Optional[str] = None, method: Optional[str] = None,
+            username: Optional[str] = None, user_id: Optional[int] = None,
+            method: Optional[str] = None,
             path: Optional[str] = None, model: Optional[str] = None,
             status_code: Optional[int] = None, client_ip: Optional[str] = None,
             detail: Optional[str] = None, commit: bool = True) -> AuditEvent:
@@ -30,7 +31,7 @@ class AuditService:
         username = (user.username if user else username)
         event = self.repo.add(AuditEvent(
             timestamp=self.clock(),
-            user_id=user.id if user else None,
+            user_id=user.id if user else user_id,
             username=username[:64] if username else None,
             event_type=event_type.value,
             method=method,

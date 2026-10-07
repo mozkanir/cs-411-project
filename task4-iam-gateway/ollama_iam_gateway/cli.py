@@ -3,6 +3,9 @@
 Usage:
     python -m ollama_iam_gateway.cli init-db
     python -m ollama_iam_gateway.cli create-admin --username admin
+    python -m ollama_iam_gateway.cli create-user --username bob --role user
+    python -m ollama_iam_gateway.cli create-key --username bob --name laptop
+    python -m ollama_iam_gateway.cli serve
     python -m ollama_iam_gateway.cli list-users
     python -m ollama_iam_gateway.cli show-policy
     python -m ollama_iam_gateway.cli check-access --role user POST /api/delete
@@ -22,6 +25,7 @@ from .config import Settings
 from .data.db import init_db, make_engine, make_session_factory
 from .data.models import Role
 from .iam.errors import IAMError as UserServiceError
+from .iam.apikey_service import ApiKeyService
 from .iam.policy import PolicyEngine
 from .iam.user_service import UserService
 
@@ -50,6 +54,33 @@ def _cmd_create_user(settings: Settings, args: argparse.Namespace, role: Role) -
         password = _read_password(args.password_stdin)
         user = service.create_user(args.username, password, role)
         print(f"Created {role.value} '{user.username}' (id={user.id}).")
+    return 0
+
+
+def _cmd_create_key(settings: Settings, args: argparse.Namespace) -> int:
+    engine = make_engine(settings.db_url)
+    init_db(engine)
+    with make_session_factory(engine)() as db:
+        user = UserService(db, settings).get_by_username(args.username)
+        if user is None:
+            raise UserServiceError(f"User '{args.username}' not found.")
+        new = ApiKeyService(db).create(user, args.name)
+        print(f"API key for '{user.username}' ({user.role.value}), name '{args.name}':")
+        print(new.raw_key)
+        print("Store it now: it is not saved anywhere and cannot be shown again.")
+    return 0
+
+
+def _cmd_serve(settings: Settings, args: argparse.Namespace) -> int:
+    import uvicorn
+
+    from .main import create_app
+
+    host = args.host or settings.host
+    port = args.port or settings.port
+    print(f"Ollama IAM Gateway on http://{host}:{port}  ->  Ollama at {settings.ollama_url}")
+    print(f"Database: {settings.db_url}")
+    uvicorn.run(create_app(settings), host=host, port=port, log_level="info")
     return 0
 
 
@@ -97,6 +128,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_admin.add_argument("--password-stdin", action="store_true",
                          help="read the password from stdin instead of prompting")
 
+    p_user = sub.add_parser("create-user", help="create a user with any role")
+    p_user.add_argument("--username", required=True)
+    p_user.add_argument("--role", required=True, choices=[r.value for r in Role])
+    p_user.add_argument("--password-stdin", action="store_true",
+                        help="read the password from stdin instead of prompting")
+
+    p_key = sub.add_parser("create-key", help="create an API key for a user and print it once")
+    p_key.add_argument("--username", required=True)
+    p_key.add_argument("--name", default="cli")
+
+    p_serve = sub.add_parser("serve", help="run the gateway")
+    p_serve.add_argument("--host", help="listen address (default IAM_HOST or 127.0.0.1)")
+    p_serve.add_argument("--port", type=int, help="listen port (default IAM_PORT or 8080)")
+
     sub.add_parser("list-users", help="list all users")
 
     sub.add_parser("show-policy", help="print the endpoint -> permission -> role table")
@@ -120,6 +165,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             return _cmd_init_db(settings, args)
         if args.command == "create-admin":
             return _cmd_create_user(settings, args, Role.ADMIN)
+        if args.command == "create-user":
+            return _cmd_create_user(settings, args, Role(args.role))
+        if args.command == "create-key":
+            return _cmd_create_key(settings, args)
+        if args.command == "serve":
+            return _cmd_serve(settings, args)
         if args.command == "list-users":
             return _cmd_list_users(settings, args)
         if args.command == "show-policy":
