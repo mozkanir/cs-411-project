@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<h1>Audit log</h1>
+<form method="get" action="/iam/admin/audit" class="inline-form filters">
+  <label class="field"><span>User</span><input name="user" value="{{ f_user }}" autocapitalize="none"></label>
+  <label class="field"><span>Event</span>
+    <select name="event"><option value="">All events</option>
+      {% for e in events %}<option value="{{ e }}" {% if e == f_event %}selected{% endif %}>{{ e }}</option>{% endfor %}
+    </select></label>
+  <button class="btn btn-primary" type="submit">Filter</button>
+  {% if f_user or f_event %}<a class="btn btn-quiet" href="/iam/admin/audit">Clear</a>{% endif %}
+</form>
+
+{% if rows %}
+<div class="table-wrap">
+<table class="audit">
+  <thead><tr><th>Time (UTC)</th><th>Event</th><th>User</th><th>Request</th><th>Model</th><th>Status</th><th>Detail</th></tr></thead>
+  <tbody>
+  {% for e in rows %}
+  {% set bad = e.event_type in ["LOGIN_FAILED", "LOGIN_LOCKED", "AUTH_FAILED", "ACCESS_DENIED"] or (e.status_code and e.status_code >= 400) %}
+  <tr class="{{ 'is-bad' if bad else '' }}">
+    <td class="nowrap">{{ e.timestamp.strftime("%d %b %H:%M:%S") }}</td>
+    <td><span class="event {{ 'event-bad' if bad else 'event-ok' }}">{{ e.event_type }}</span></td>
+    <td>{{ e.username or "–" }}</td>
+    <td class="nowrap">{% if e.path %}<code>{{ e.method }} {{ e.path }}</code>{% endif %}</td>
+    <td>{{ e.model or "" }}</td>
+    <td>{{ e.status_code or "" }}</td>
+    <td class="detail">{{ e.detail or "" }}{% if e.client_ip %} <span class="muted">from {{ e.client_ip }}</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<nav class="pager" aria-label="Pages">
+  {% if page > 1 %}<a class="btn btn-quiet" href="?user={{ f_user|urlencode }}&event={{ f_event|urlencode }}&page={{ page - 1 }}">Newer</a>{% endif %}
+  <span class="muted">Page {{ page }}</span>
+  {% if has_next %}<a class="btn btn-quiet" href="?user={{ f_user|urlencode }}&event={{ f_event|urlencode }}&page={{ page + 1 }}">Older</a>{% endif %}
+</nav>
+{% else %}
+<p class="empty">No events match these filters.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block shell %}
+{% if user %}{{ super() }}{% else %}
+<main class="page narrow-page">
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  {% if signed_in %}
+  <p><a class="btn btn-primary" href="/iam/account">Back to your account</a></p>
+  {% else %}
+  <p><a class="btn btn-primary" href="/iam/login">Go to sign in</a></p>
+  {% endif %}
+</main>
+{% endif %}
+{% endblock %}
+{% block content %}
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  <p><a class="btn btn-quiet" href="/iam/account">Back to your account</a></p>
+{% endblock %}

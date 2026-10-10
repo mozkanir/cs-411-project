@@ -1,0 +1,52 @@
+@startuml
+title Logical View — Component Diagram (Layered)
+skinparam shadowing false
+skinparam componentStyle uml2
+actor Browser
+actor "API Client" as Client
+
+package "Ollama IAM Gateway (Python / FastAPI)" {
+  package "Presentation Layer" as PL {
+    [Web UI Controllers\n/iam/login, /iam/account, /iam/admin/*] as WebUI
+    [Jinja2 Templates] as Tpl
+  }
+  package "Gateway Layer" as GL {
+    [Credential Resolver\n(Bearer API key)] as Cred
+    [Policy Enforcement Point\n(proxy pipeline)] as PEP
+    [Ollama Proxy Client\n(httpx, streaming)] as Proxy
+  }
+  package "IAM Service Layer" as SL {
+    [AuthService] as Auth
+    [SessionService] as Sess
+    [ApiKeyService] as Keys
+    [UserService] as Users
+    [PolicyEngine (PDP)] as PDP
+    [AuditService] as Audit
+    [Security utils\nargon2id, tokens, CSRF] as Sec
+  }
+  package "Data Layer" as DL {
+    [Repositories\nUser, Session, ApiKey, Audit] as Repo
+    database "SQLite iam.db" as DB
+  }
+}
+node "Ollama Server\n127.0.0.1:11434" as Ollama
+
+Browser --> WebUI : session cookie
+Client --> Cred : Authorization: Bearer
+WebUI -right-> Tpl
+WebUI --> SL : uses
+Cred -right-> PEP
+PEP -right-> Proxy
+Cred --> Keys : resolve key
+PEP --> PDP : is_allowed()
+PEP --> Audit : log
+Proxy --> Ollama : HTTP loopback
+SL --> DL : uses
+Repo -right-> DB
+Auth -[hidden]right-> Sess
+Sess -[hidden]right-> Keys
+Keys -[hidden]right-> Users
+Users -[hidden]right-> PDP
+PDP -[hidden]right-> Audit
+Auth -[hidden]down-> Sec
+@enduml

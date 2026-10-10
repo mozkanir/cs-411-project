@@ -1,0 +1,5 @@
+# local databases and demo artifacts (contain users and API keys)
+*.db
+demo_env.ps1
+body.json
+delete.json

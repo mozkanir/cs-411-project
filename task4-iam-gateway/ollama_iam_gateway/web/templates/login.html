@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block body_class %}login{% endblock %}
+{% block shell %}
+<main class="login-layout">
+  <section class="login-form-col">
+    <p class="brand brand-login">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="12" r="4.5"/><path d="M12.5 12H22M18 12v3.5M21 12v2.5"/></svg>
+      Ollama Access
+    </p>
+    <h1>Sign in</h1>
+    <p class="lead">Ollama on <strong>{{ server }}</strong> is shared. Sign in to get your API key and see what you are allowed to do.</p>
+
+    {% if notice %}<p class="flash flash-ok" role="status">{{ notice }}</p>{% endif %}
+    {% if error %}<p class="flash flash-err" role="alert" id="login-error">{{ error }}</p>{% endif %}
+
+    <form method="post" action="/iam/login" class="stack" novalidate>
+      <input type="hidden" name="csrf" value="{{ login_csrf }}">
+      <label class="field">
+        <span>Username</span>
+        <input name="username" value="{{ username }}" autocomplete="username" autocapitalize="none"
+               spellcheck="false" required autofocus {% if error %}aria-describedby="login-error"{% endif %}>
+      </label>
+      <label class="field">
+        <span>Password</span>
+        <span class="pw">
+          <input name="password" type="password" autocomplete="current-password" required>
+          <button type="button" class="btn btn-quiet pw-toggle" data-toggle-password aria-label="Show password">Show</button>
+        </span>
+      </label>
+      <p class="caps-hint" hidden data-caps-hint>Caps Lock is on.</p>
+      <button class="btn btn-primary btn-wide" type="submit">Sign in</button>
+    </form>
+    <p class="fine">Forgot your password or locked out? Ask an admin of this server to reset or unlock your account.</p>
+  </section>
+
+  <aside class="login-path" aria-label="How access works">
+    <h2>How access works</h2>
+    <ol class="rail">
+      <li>
+        <strong>Your program sends your API key</strong>
+        <span>curl, the OpenAI SDK or ollama-python add <code>Authorization: Bearer olg_…</code></span>
+      </li>
+      <li>
+        <strong>The gateway checks your role</strong>
+        <span>Viewers list models, users also chat, admins also manage models and people.</span>
+      </li>
+      <li>
+        <strong>Ollama answers, and the request is logged</strong>
+        <span>Ollama itself only listens on this machine, so every request passes here first.</span>
+      </li>
+    </ol>
+  </aside>
+</main>
+{% endblock %}

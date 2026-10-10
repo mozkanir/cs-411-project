@@ -1,0 +1,30 @@
+@startuml
+title Physical View — Deployment Diagram
+skinparam shadowing false
+node "Client machine" {
+  artifact "Web browser" as B
+  artifact "curl / OpenAI SDK /\nollama-python" as S
+}
+node "GPU server" {
+  node "Python runtime (uvicorn)" {
+    component "Ollama IAM Gateway\n0.0.0.0:8080" as G
+  }
+  database "iam.db (SQLite)" as DB
+  node "Ollama (Go binary)" {
+    component "ollama serve\nOLLAMA_HOST=127.0.0.1:11434" as O
+  }
+  artifact "~/.ollama/models" as M
+}
+cloud "ollama.com\n(cloud models, web search)" as Cloud
+B --> G : HTTP(S) :8080\n/iam/* pages
+S --> G : HTTP(S) :8080\n/api/*, /v1/*
+G --> DB : file I/O
+G --> O : HTTP loopback only
+O --> M
+O --> Cloud : HTTPS (signed with\nmachine ed25519 key)
+note bottom of O
+  Not reachable from the network:
+  bound to loopback, so every outside
+  request must pass the gateway.
+end note
+@enduml
