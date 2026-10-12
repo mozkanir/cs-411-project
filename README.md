@@ -8,9 +8,10 @@
 
 ## Sources
 - [DeepWiki Ollama](https://deepwiki.com/ollama/ollama)
-- [CodeWiki Ollama](https://codewiki.google/github.com/ollama/ollama) 
-- https://markaicode.com/architecture/ollama-inference-architecture/
-- https://jonathanding.github.io/llm-learning/en/articles/ollama-architecture/
+- [CodeWiki Ollama](https://codewiki.google/github.com/ollama/ollama)
+- https://jonathanding.github.io/llm-learning/en/articles/ollama-architecture/ 
+- https://markaicode.com/architecture/ollama-inference-architecture/ (Bu makale Ollama'nın üzerine bir şey inşa ediyor. Ollama'yı anlatmıyor. Belki extension fikri bulmak için kullanılabilir)
+
 #### Medium Articles
 - https://asha7tomar.medium.com/ollama-architecture-overview-74b203d7927a
 - https://pub.towardsai.net/overview-of-ollama-architecture-deep-dive-8c03097d6996
