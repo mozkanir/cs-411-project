@@ -4,7 +4,7 @@
 - https://github.com/ollama/ollama
 
 ## Docs Link:
-- https://docs.google.com/document/d/1D1bmD4gx1Pm3hSbsJdbbjesbHHkdfNeH3gn4eWDv58Y/
+- https://docs.google.com/document/d/12AfuEGsoNYUzfcOsuiNuKn8u4doiCcM9LVIF2ndhAmM/edit?usp=sharing
 
 ## Sources
 - [DeepWiki Ollama](https://deepwiki.com/ollama/ollama)
