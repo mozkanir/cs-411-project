@@ -1,0 +1,330 @@
+classDiagram
+    direction LR
+
+    class Server {
+        -sched : Scheduler
+        +ChatHandler()
+        +GenerateHandler()
+        +EmbedHandler()
+        +PullHandler()
+        +CreateHandler()
+        +PsHandler()
+    }
+
+    class Scheduler {
+        -pendingReqCh : chan LlmRequest
+        -finishedReqCh : chan LlmRequest
+        -expiredCh : chan runnerRef
+        -loaded : map~string, runnerRef~
+        +getRunner(model, opts, keepAlive)
+        -processPending()
+        -processCompleted()
+        -load(req, gpus)
+        -findRunnerToUnload()
+    }
+
+    class LlmRequest {
+        model : Model
+        opts : Options
+        sessionDuration : Duration
+        successCh : chan runnerRef
+        errCh : chan error
+    }
+
+    class runnerRef {
+        refCount : int
+        sessionDuration : Duration
+        expiresAt : Time
+        vramSize : uint64
+        gpus : DeviceID[]
+        +needsReload() bool
+        +unload()
+    }
+
+    class LlamaServer {
+        <<interface>>
+        +Load(ctx, systemInfo, gpus)
+        +Completion(ctx, req, fn)
+        +Embedding(ctx, input)
+        +Tokenize(ctx, text)
+        +Ping(ctx)
+        +Close()
+    }
+
+    class llamaServerRunner {
+        cmd : exec.Cmd
+        port : int
+    }
+
+    class mlxrunnerClient["mlxrunner.Client"] {
+        cmd : exec.Cmd
+        port : int
+    }
+
+    class Model {
+        Name : string
+        ModelPath : string
+        Template : Template
+        Options : map
+        Config : ConfigV2
+        +IsMLX() bool
+        +Capabilities()
+    }
+
+    class Manifest {
+        Config : Layer
+        Layers : Layer[]
+    }
+
+    class Layer {
+        MediaType : string
+        Digest : string
+        Size : int64
+    }
+
+    class Name {
+        Host : string
+        Namespace : string
+        Model : string
+        Tag : string
+    }
+
+    class Parser {
+        <<interface>>
+        +Add(text) content, thinking, toolCalls
+    }
+
+    class Renderer {
+        <<interface>>
+        +Render(messages, tools) string
+    }
+
+    namespace ollama_iam_gateway {
+        class OllamaProxy {
+            <<PEP>>
+            +handle(request) Response
+            -_forward(request, info, audit) Response
+            -_audit(event, info, status, detail)
+        }
+
+        class Identity {
+            user_id : int
+            username : string
+            role : Role
+            key_prefix : string
+        }
+
+        class PolicyEngine {
+            <<PDP, stateless>>
+            rules : RouteRule[]
+            role_permissions : dict
+            +required_permission(method, path) Permission
+            +decide(role, method, path) Decision
+            +is_allowed(role, method, path) bool
+            +has_permission(role, permission) bool
+        }
+
+        class RouteRule {
+            methods : set
+            pattern : string
+            permission : Permission
+        }
+
+        class Decision {
+            allowed : bool
+            permission : Permission
+            reason : string
+        }
+
+        class Permission {
+            <<enumeration>>
+            PUBLIC
+            MODELS_READ
+            INFERENCE
+            TOOLS_WEB
+            MODELS_MANAGE
+            CLOUD_ACCOUNT
+            IAM_MANAGE
+        }
+
+        class Role {
+            <<enumeration>>
+            VIEWER
+            USER
+            ADMIN
+        }
+
+        class AuthService {
+            +login(username, password, client_ip) LoginResult
+            +logout(raw_session_token, client_ip)
+        }
+
+        class SessionService {
+            +create(user) NewSession
+            +validate(raw_token) UserSession
+            +destroy(raw_token) User
+        }
+
+        class ApiKeyService {
+            +create(user, name) NewApiKey
+            +revoke(actor, key_id) ApiKey
+            +resolve(raw_key) ResolvedKey
+        }
+
+        class UserService {
+            +create_user(username, password, role) User
+            +set_role(actor, user_id, role) User
+            +set_active(actor, user_id, active) User
+            +unlock(actor, user_id) User
+            +reset_password(actor, user_id, new_password) User
+            +change_own_password(user, current, new) User
+        }
+
+        class AuditService {
+            +log(event_type, user, method, path, model, status_code)
+            +list_recent(limit, offset) AuditEvent[]
+        }
+
+        class User {
+            id : int
+            username : string, unique
+            password_hash : string, argon2id
+            role : Role
+            is_active : bool
+            failed_attempts : int
+            locked_until : datetime?
+            created_at : datetime
+        }
+
+        class UserSession {
+            id : int
+            token_hash : string, sha256
+            csrf_token : string
+            created_at : datetime
+            last_seen_at : datetime
+            expires_at : datetime
+        }
+
+        class ApiKey {
+            id : int
+            name : string
+            prefix : string, shown in UI
+            key_hash : string, sha256
+            created_at : datetime
+            last_used_at : datetime?
+            revoked_at : datetime?
+        }
+
+        class AuditEvent {
+            id : int
+            timestamp : datetime
+            username : string?
+            event_type : string
+            method : string?
+            path : string?
+            model : string?
+            status_code : int?
+            client_ip : string?
+            detail : string?
+        }
+    }
+
+    namespace router {
+        class SmartRouter {
+            <<new>>
+            +is_auto(body) bool
+            +route(messages, tools, preference) RouteDecision
+            +report_failure(model)
+        }
+
+        class RequestClassifier {
+            <<interface>>
+            +classify(messages, tools) TaskProfile
+        }
+
+        class RuleBasedClassifier {
+            prompt length, code blocks,
+            keywords, tools requested
+        }
+
+        class TaskProfile {
+            task_type : chat | code | reasoning
+            complexity : simple | complex
+        }
+
+        class ModelProfile {
+            name : string
+            size_tier : small | large
+            strengths : code, reasoning
+            typical_latency_ms : int
+            enabled : bool
+        }
+
+        class ModelStatus {
+            installed : set
+            loaded : set
+            recent_failures : map
+            +refresh()
+        }
+
+        class RouteDecision {
+            model : string
+            fallbacks : string[]
+            reason : string
+        }
+
+        class Preference {
+            <<enumeration>>
+            FAST
+            BALANCED
+            QUALITY
+        }
+    }
+
+    Server --> Scheduler : schedules work on
+    Scheduler "1" o-- "*" runnerRef : loaded runners
+    Scheduler ..> LlmRequest : queues
+    LlmRequest --> Model
+    runnerRef --> LlamaServer : wraps
+    runnerRef --> Model
+    LlamaServer <|.. llamaServerRunner : GGUF models
+    LlamaServer <|.. mlxrunnerClient : safetensors models
+    Model --> Manifest : built from
+    Manifest "1" *-- "1..*" Layer
+    Model --> Name
+    Server ..> Renderer : builds prompt with
+    Server ..> Parser : parses model output with
+
+    OllamaProxy ..> Server : forwards to 127.0.0.1 11434, named model unchanged or model chosen by router
+    OllamaProxy ..> ApiKeyService : resolves Bearer key with
+    OllamaProxy ..> Identity : creates
+    OllamaProxy --> PolicyEngine : asks for decision
+    OllamaProxy ..> AuditService : logs each protected request
+    PolicyEngine "1" *-- "*" RouteRule
+    PolicyEngine ..> Decision : returns
+    PolicyEngine ..> Role
+    PolicyEngine ..> Permission
+    RouteRule --> Permission
+    Identity --> Role
+    AuthService --> SessionService : opens session
+    AuthService --> AuditService
+    AuthService ..> User : verifies password of
+    SessionService ..> UserSession
+    ApiKeyService ..> ApiKey
+    UserService ..> User
+    AuditService ..> AuditEvent
+    User "1" *-- "0..*" UserSession
+    User "1" *-- "0..*" ApiKey
+    User --> Role
+    AuditEvent "0..*" --> "0..1" User : actor
+
+    OllamaProxy --> SmartRouter : only when model is auto
+    note for OllamaProxy "model named by client: forwarded to Server unchanged<br/>model auto: SmartRouter chooses a model, then forwarded"
+    SmartRouter --> RequestClassifier : analyzes request with
+    RequestClassifier <|.. RuleBasedClassifier
+    RequestClassifier ..> TaskProfile : returns
+    SmartRouter "1" o-- "*" ModelProfile : from router.yaml
+    SmartRouter --> ModelStatus
+    SmartRouter ..> Preference
+    SmartRouter ..> RouteDecision : returns
+    ModelStatus ..> Server : reads /api/tags and /api/ps

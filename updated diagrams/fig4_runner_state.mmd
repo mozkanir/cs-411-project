@@ -1,0 +1,64 @@
+stateDiagram-v2
+    state "Authenticating (gateway)" as Authenticating
+    state "Authorized as viewer (gateway)" as AsViewer
+    state "Authorized as user (gateway)" as AsUser
+    state "Authorized as admin (gateway)" as AsAdmin
+    state "401 Unauthorized (gateway)" as R401
+    state "403 Forbidden (gateway)" as R403
+    state "502 Ollama not reachable (gateway)" as R502
+    state "Classifying request (router)" as Classifying
+    state "Selecting model (router)" as Selecting
+    state "503 No model available (router)" as R503
+    state ToOllama <<choice>>
+
+    [*] --> Authenticating : API request on port 8080
+    Authenticating --> AsAdmin : key of an admin
+    Authenticating --> AsUser : key of a user
+    Authenticating --> AsViewer : key of a viewer
+    Authenticating --> R401 : no key, or key unknown, revoked or owner disabled
+
+    AsUser --> ToOllama : chat, generate, embed (named model)
+    AsAdmin --> ToOllama : chat, generate, embed (named model)
+    AsUser --> Classifying : model auto
+    AsAdmin --> Classifying : model auto
+    Classifying --> Selecting : task type, complexity and preference known
+    Selecting --> ToOllama : chosen model
+    Selecting --> R503 : no suitable model installed or enabled
+    ToOllama --> Queued : model not loaded
+    ToOllama --> Busy : model already loaded
+    AsViewer --> [*] : list, show, ps answered
+    AsUser --> [*] : list, show, ps, web tools answered
+    AsAdmin --> [*] : list, show, ps, web tools, pull, create, copy, delete answered
+    AsViewer --> R403 : run or manage models, or route with no rule
+    AsUser --> R403 : manage models, or route with no rule
+    AsAdmin --> R403 : route with no rule (default deny)
+    AsViewer --> R502 : Ollama down
+    AsUser --> R502 : Ollama down
+    AsAdmin --> R502 : Ollama down
+
+    R401 --> [*] : error returned, AUTH_FAILED audited
+    R403 --> [*] : error returned, ACCESS_DENIED audited
+    R502 --> [*] : error returned, audited with status 502
+    R503 --> [*] : error returned, audited
+
+    Queued --> Evicting : not enough free memory
+    Evicting --> Loading : idle runner unloaded
+    Queued --> Loading : enough free memory
+    Loading --> Busy : process started and model loaded
+    Loading --> Evicting : out of memory on load (one retry)
+    Loading --> Failed : start or load error
+    Busy --> Idle : all requests done (each one audited)
+    Idle --> Busy : new chat, generate or embed from user or admin, ping OK
+    Idle --> Loading : ping fails or options changed
+    Idle --> Unloading : keep-alive timer expired
+    Idle --> Unloading : evicted for another model
+    Unloading --> [*] : process stopped, memory released
+    Failed --> Selecting : model auto, untried fallback left (before first token)
+    Failed --> [*] : error returned to client (model named, or no fallback left)
+
+    classDef gateway fill:#e8eefc,stroke:#4a6fd1
+    classDef error fill:#fdeaea,stroke:#c94a4a
+    classDef router fill:#e9f6ec,stroke:#3c9a5f
+    class Authenticating, AsViewer, AsUser, AsAdmin gateway
+    class R401, R403, R502, R503 error
+    class Classifying, Selecting router

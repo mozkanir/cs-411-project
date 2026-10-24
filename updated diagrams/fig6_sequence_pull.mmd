@@ -1,0 +1,46 @@
+sequenceDiagram
+    autonumber
+    actor VU as Viewer / User
+    actor AD as Admin
+    participant C as Client program<br/>(ollama-python / curl)
+    participant G as IAM Gateway<br/>(port 8080)
+    box Ollama (127.0.0.1 port 11434)
+        participant H as Server<br/>(PullHandler)
+        participant FS as Local store<br/>(~/.ollama/models)
+    end
+    participant REG as registry.ollama.ai
+
+    rect rgb(253, 237, 237)
+        Note over VU,G: Viewer / User: no models:manage permission
+        VU->>C: pull gemma3
+        C->>G: POST /api/pull {model}<br/>Authorization: Bearer (own key)
+        G->>G: check key and role: refused, audited
+        G-->>C: 403 Forbidden
+        C-->>VU: show error
+    end
+
+    rect rgb(237, 247, 237)
+        Note over AD,REG: Admin: allowed
+        AD->>C: pull gemma3
+        C->>G: POST /api/pull {model}<br/>Authorization: Bearer (admin's key)
+        G->>G: check key and role: allowed
+        G->>H: POST /api/pull {model} (key removed)
+        H->>REG: GET manifest for library/gemma3:latest
+        REG-->>H: manifest (list of layer digests)
+        loop for each layer not already in the store
+            par 16 parallel byte ranges
+                H->>REG: GET blob (Range: bytes=a-b)
+                REG-->>H: part of the blob
+            end
+            H->>FS: write blob part files
+            H-->>G: progress (NDJSON)
+            G-->>C: same line, streamed unchanged
+            C-->>AD: show progress
+        end
+        H->>FS: verify SHA-256 digest of each blob
+        H->>FS: write manifest
+        H-->>G: status "success"
+        G-->>C: status "success"
+        C-->>AD: show "success"
+        G->>G: audit the request (who, model, status)
+    end

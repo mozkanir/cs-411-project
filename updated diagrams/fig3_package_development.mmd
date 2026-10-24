@@ -1,0 +1,93 @@
+flowchart TB
+    subgraph L1["Layer 1: Clients"]
+        direction LR
+        cmd["cmd<br/>(CLI commands, interactive chat)"]
+        app["app<br/>(desktop app, tray, web UI)"]
+        apiclient["api<br/>(Go client and request types)"]
+        browser["Web browser<br/>(gateway console)"]
+        sdk["Third-party clients<br/>(OpenAI SDK, ollama-python, curl)"]
+    end
+
+    subgraph L2["Layer 2: IAM Gateway (new, Python package ollama_iam_gateway, separate process)"]
+        direction TB
+        boot["main, cli, config<br/>(app factory, admin CLI,<br/>settings from IAM_ variables)"]
+        subgraph GWTOP[" "]
+            direction LR
+            web["web<br/>(routes_auth, routes_account, routes_admin,<br/>deps, Jinja2 templates)"]
+            gw["gateway<br/>(credentials.py: Credential Resolver,<br/>proxy.py: Policy Enforcement Point)"]
+        end
+        iam["iam<br/>(PolicyEngine, AuthService, SessionService,<br/>ApiKeyService, UserService, AuditService, security)"]
+        data["data<br/>(models, repositories, db)<br/>SQLite iam.db"]
+    end
+
+    subgraph L3["Layer 3: Smart Router (new, Python package ollama_smart_router)"]
+        direction LR
+        router["router<br/>(smart_router.py, classifier.py,<br/>profiles.py, model_status.py)"]
+        rcfg["config<br/>(rules and model profiles<br/>from router.yaml)"]
+    end
+
+    subgraph L4["Layer 4: HTTP API"]
+        direction LR
+        routes["server: routes.go<br/>(Gin router, handlers)"]
+        mw["middleware, openai, anthropic<br/>(format translation)"]
+    end
+
+    subgraph L5["Layer 5: Core services"]
+        direction LR
+        sched["server: sched.go<br/>(scheduler)"]
+        store["server: images.go, download.go,<br/>upload.go, create.go<br/>(model store and registry client)"]
+        prompt["template, model/renderers,<br/>model/parsers<br/>(prompt and output handling)"]
+    end
+
+    subgraph L6["Layer 6: Runner integration"]
+        direction LR
+        llm["llm<br/>(LlamaServer interface,<br/>llama-server control)"]
+        mlxr["mlxrunner<br/>(MLX runner client and process)"]
+        discover["discover<br/>(GPU discovery)"]
+    end
+
+    subgraph L7["Layer 7: Native engines (separate executables)"]
+        direction LR
+        llamacpp["llama.cpp llama-server<br/>(pinned upstream + llama/compat patches)"]
+        mlx["MLX library<br/>(Apple Silicon)"]
+    end
+
+    subgraph X["Cross-cutting packages"]
+        direction LR
+        env["envconfig"]
+        types["types/model, manifest"]
+        fs["fs/gguf, fs/safetensors"]
+        auth["auth"]
+        ml["ml"]
+    end
+
+    browser -- "HTTP /iam/*, session cookie" --> web
+    sdk -- "HTTP /api/*, /v1/*, Bearer API key" --> gw
+    boot --> web
+    boot --> gw
+    web --> iam
+    gw --> iam
+    iam --> data
+    gw --> router
+    gw -- "HTTP / JSON, loopback only" --> routes
+    router --> rcfg
+    router -- "HTTP, loopback<br/>(installed and loaded models)" --> routes
+
+    cmd --> apiclient
+    cmd -. "ollama serve only" .-> routes
+    app --> apiclient
+    apiclient -- "HTTP / JSON, on the server machine only<br/>(cannot send an API key)" --> routes
+    routes --> mw
+    routes --> sched
+    routes --> store
+    routes --> prompt
+    sched --> llm
+    sched --> mlxr
+    sched --> discover
+    llm -- "starts process" --> llamacpp
+    mlxr -- "loads library" --> mlx
+    discover -- "probes devices with" --> llamacpp
+    L5 -.-> X
+    L6 -.-> X
+
+    style L3 fill:#e9f6ec,stroke:#3c9a5f
