@@ -29,7 +29,7 @@ flowchart LR
         direction TB
         UC1(["List, show and see<br/>loaded models"])
         UC2(["Generate, chat or embed<br/>(native, OpenAI or Anthropic API)"])
-        UC6(["Use web search / fetch"])
+        UC7(["Stop a loaded model"])
         UC3(["Manage models<br/>(pull, push, create, delete)"])
     end
 
@@ -42,7 +42,7 @@ flowchart LR
     VW --- G1
     VW --- UC1
     US --- UC2
-    US --- UC6
+    US --- UC7
     US --- R1
     AD --- G2
     AD --- UC3
