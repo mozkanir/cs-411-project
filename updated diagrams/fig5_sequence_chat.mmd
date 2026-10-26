@@ -35,8 +35,8 @@ sequenceDiagram
         SR->>SR: classify request: code, complex
         SR->>H: GET /api/tags, /api/ps
         H-->>SR: installed and loaded models
-        SR-->>G: RouteDecision: qwen2.5-coder:7b,<br/>fallback llama3.2:3b
-        G->>H: POST /api/chat {model: "qwen2.5-coder:7b"} (key removed)
+        SR-->>G: RouteDecision: large coding model,<br/>fallback small model
+        G->>H: POST /api/chat {model: large coding model} (key removed)
         H->>H: GetModel(): read manifest and layers from disk
         H->>S: getRunner(model, opts, keepAlive)
         S->>S: put LlmRequest on pendingReqCh
@@ -50,11 +50,11 @@ sequenceDiagram
             R-->>S: load error
             S-->>H: error on errCh
             H-->>G: error response
-            G->>SR: report_failure("qwen2.5-coder:7b")
-            SR-->>G: next model: llama3.2:3b
-            G->>H: POST /api/chat {model: "llama3.2:3b"}
-            H->>S: getRunner(llama3.2:3b, opts, keepAlive)
-            S->>R: start process for llama3.2:3b
+            G->>SR: report_failure(large coding model)
+            SR-->>G: next model: small model
+            G->>H: POST /api/chat {model: small model}
+            H->>S: getRunner(small model, opts, keepAlive)
+            S->>R: start process for small model
         end
         S->>R: poll until ready (WaitUntilRunning)
         R-->>S: ready
