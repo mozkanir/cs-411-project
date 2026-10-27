@@ -1,22 +1,64 @@
-# CS-411 Project
+# CS411 Project #1: Ollama
 
-## Ollama Project Link:
-- https://github.com/ollama/ollama
+CS411 Software Architecture Design (2026-2027 Fall), Project #1.
+Selected open-source project: [Ollama](https://github.com/ollama/ollama).
 
-## Docs Link:
-- https://docs.google.com/document/d/12AfuEGsoNYUzfcOsuiNuKn8u4doiCcM9LVIF2ndhAmM/edit?usp=sharing
+We examine Ollama's current architecture, propose an extension (a Smart Router), and implement a new login page with an IAM module in Python.
 
-## Sources
-- [DeepWiki Ollama](https://deepwiki.com/ollama/ollama)
-- [CodeWiki Ollama](https://codewiki.google/github.com/ollama/ollama)
-- https://jonathanding.github.io/llm-learning/en/articles/ollama-architecture/ (Yapay Zeka ile üretilmiş. Her bilgi ana repodan kontrol edilmeli)
-- https://markaicode.com/architecture/ollama-inference-architecture/ (Bu makale Ollama'nın üzerine bir şey inşa ediyor. Ollama'yı anlatmıyor. Belki extension fikri bulmak için kullanılabilir)
+## Repository structure
 
-#### Medium Articles
-- https://asha7tomar.medium.com/ollama-architecture-overview-74b203d7927a
-- https://pub.towardsai.net/overview-of-ollama-architecture-deep-dive-8c03097d6996
-- https://medium.com/@rifewang/analysis-of-ollama-architecture-and-conversation-processing-flow-for-ai-llm-tool-ead4b9f40975
-- https://medium.com/@laiso/ollama-under-the-hood-f8ed0f14d90c
-- https://medium.com/@umang.gulati19/inside-ollama-understanding-the-architecture-behind-your-local-llm-runner-4b7ff94a319e
-- https://medium.com/@rifewang/analysis-of-ollama-architecture-and-conversation-processing-flow-for-ai-llm-tool-ead4b9f40975
+```
+cs-411-project/
+├── SOURCES.md           # References used in the report
+├── diagrams/            # Ollama's current architecture (figures 1-6)
+├── updated_diagrams/    # Architecture after our IAM + Smart Router extension (figures 7-12)
+└── task4-iam-gateway/   # Task 4: login page + IAM module implementation (Python)
+```
 
+### `diagrams/`: current architecture
+
+UML diagrams of Ollama as it is today (4+1 views):
+
+| Figure | View | Diagram |
+|---|---|---|
+| Fig. 1 | Scenario | Use case |
+| Fig. 2 | Logical | Class diagram |
+| Fig. 3 | Development | Package diagram |
+| Fig. 4 | Process | Runner state machine |
+| Fig. 5 | Process | Chat request sequence |
+| Fig. 6 | Physical | Deployment |
+
+### `updated_diagrams/`: architecture after the extension
+
+The same views, updated for our IAM + Smart Router extension (Fig. 7 to Fig. 12).
+
+| Figure | View | File |
+|---|---|---|
+| Fig. 7 | Scenario | `fig7_use_case.mmd` |
+| Fig. 8 | Logical | `fig8_class_logical.mmd` |
+| Fig. 9 | Development | `fig9_package_development.mmd` |
+| Fig. 10 | Process | `fig10_runner_state.mmd` |
+| Fig. 11 | Process | `fig11_sequence_chat.mmd` |
+| Fig. 12 | Physical | `fig12_deployment.mmd` |
+
+### `task4-iam-gateway/`: implementation
+
+A Python gateway placed in front of Ollama. It adds a login page, user and API key
+management, role-based access control and an audit log, without changing Ollama's code.
+
+```
+task4-iam-gateway/
+├── ollama_iam_gateway/
+│   ├── iam/        # Authentication, sessions, API keys, RBAC policy, audit
+│   ├── gateway/    # Authenticated reverse proxy to Ollama
+│   ├── web/        # Login page and admin/account pages (templates, static files)
+│   ├── data/       # SQLite models and repositories
+│   ├── cli.py      # Admin command line
+│   └── main.py     # Application entry point
+├── tests/          # pytest suite
+├── scripts/        # Demo helper scripts
+└── docs/           # Task 4 diagrams and screenshots
+```
+
+Installation, running and demo instructions are in
+[task4-iam-gateway/README.md](task4-iam-gateway/README.md).

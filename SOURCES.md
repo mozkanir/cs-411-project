@@ -1,0 +1,22 @@
+# CS-411 Project
+
+## Ollama Project Link:
+- https://github.com/ollama/ollama
+
+## Docs Link:
+- https://docs.google.com/document/d/12AfuEGsoNYUzfcOsuiNuKn8u4doiCcM9LVIF2ndhAmM/edit?usp=sharing
+
+## Sources
+- [DeepWiki Ollama](https://deepwiki.com/ollama/ollama)
+- [CodeWiki Ollama](https://codewiki.google/github.com/ollama/ollama)
+- https://jonathanding.github.io/llm-learning/en/articles/ollama-architecture/ (Yapay Zeka ile üretilmiş. Her bilgi ana repodan kontrol edilmeli)
+- https://markaicode.com/architecture/ollama-inference-architecture/ (Bu makale Ollama'nın üzerine bir şey inşa ediyor. Ollama'yı anlatmıyor. Belki extension fikri bulmak için kullanılabilir)
+
+#### Medium Articles
+- https://asha7tomar.medium.com/ollama-architecture-overview-74b203d7927a
+- https://pub.towardsai.net/overview-of-ollama-architecture-deep-dive-8c03097d6996
+- https://medium.com/@rifewang/analysis-of-ollama-architecture-and-conversation-processing-flow-for-ai-llm-tool-ead4b9f40975
+- https://medium.com/@laiso/ollama-under-the-hood-f8ed0f14d90c
+- https://medium.com/@umang.gulati19/inside-ollama-understanding-the-architecture-behind-your-local-llm-runner-4b7ff94a319e
+- https://medium.com/@rifewang/analysis-of-ollama-architecture-and-conversation-processing-flow-for-ai-llm-tool-ead4b9f40975
+
