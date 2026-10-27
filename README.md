@@ -34,12 +34,12 @@ The same views, updated for our IAM + Smart Router extension (Fig. 7 to Fig. 12)
 
 | Figure | View | File |
 |---|---|---|
-| Fig. 7 | Scenario | `fig7_use_case.mmd` |
-| Fig. 8 | Logical | `fig8_class_logical.mmd` |
-| Fig. 9 | Development | `fig9_package_development.mmd` |
-| Fig. 10 | Process | `fig10_runner_state.mmd` |
-| Fig. 11 | Process | `fig11_sequence_chat.mmd` |
-| Fig. 12 | Physical | `fig12_deployment.mmd` |
+| Fig. 7 | Scenario | `fig7_use_case.png` |
+| Fig. 8 | Logical | `fig8_class_logical.png` |
+| Fig. 9 | Development | `fig9_package_development.png` |
+| Fig. 10 | Process | `fig10_runner_state.png` |
+| Fig. 11 | Process | `fig11_sequence_chat.png` |
+| Fig. 12 | Physical | `fig12_deployment.png` |
 
 ### `task4-iam-gateway/`: implementation
 
